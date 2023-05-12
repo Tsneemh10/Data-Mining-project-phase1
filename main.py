@@ -82,52 +82,89 @@ def plot_3d(df):
     outliers = results_formula.outlier_test(method='sidak', alpha=0.05, labels=None, order=False, cutoff= 0.999999)
     return outliers
 
-
-def Kmeans_cluster(numerical_dataframe, n_clusters):
+def elbow_best_number_of_clusters(df):
     from sklearn.cluster import KMeans
     from sklearn.model_selection import train_test_split
+    from sklearn_extra.cluster import KMedoids
+    # Determine optimal number of clusters using the elbow method
+    # Extract relevant features for clustering
+    X = df[['Gender', 'Age', 'Annual Income (k$)', 'Spending Score (1-100)']].values
+    wcss_kmeans = []
+    k_range = range(1, 11)
+    cost = []
+    for i in range(1, 11):
+        kmeans = KMeans(n_clusters=i, init='k-means++', max_iter=300, n_init=10, random_state=0)
+        kmeans.fit(X)
+        wcss_kmeans.append(kmeans.inertia_)
+
+        # Calculate sum of dissimilarities for each value of k
+        kmedoids = KMedoids(n_clusters=i, random_state=0)
+        kmedoids.fit(X)
+        cost.append(kmedoids.inertia_)
+
+    fig = plt.figure(figsize=(15, 15))
+    ax = fig.add_subplot(121)
+    ax2 = fig.add_subplot(122)
+
+    ax.plot(k_range, cost)
+    ax.set_title('sum of dissimilarities for kmedoids')
+    ax.set_xlabel('Number of clusters')
+    ax.set_ylabel('Cost')
+
+    ax2.plot(k_range, wcss_kmeans)
+    ax2.set_title('Elbow Method for kmeans')
+    ax2.set_xlabel('Number of clusters')
+    ax2.set_ylabel('WCSS')
+    plt.show()
+
+
+
+def Kmeans_KMedoids_cluster(numerical_dataframe, n_clusters):
+    from sklearn.cluster import KMeans
+    from sklearn.model_selection import train_test_split
+    from sklearn_extra.cluster import KMedoids
 
     # Extract relevant features for clustering
     X = numerical_dataframe[['Gender', 'Age', 'Annual Income (k$)', 'Spending Score (1-100)']].values
     X_train, X_test = train_test_split(X, test_size=0.2, random_state=42)
 
-    # Determine optimal number of clusters using the elbow method
-    wcss = []
-    for i in range(1, 11):
-        kmeans = KMeans(n_clusters=i, init='k-means++', max_iter=300, n_init=10, random_state=0)
-        kmeans.fit(X_train)
-        wcss.append(kmeans.inertia_)
-    plt.plot(range(1, 11), wcss)
-    plt.title('Elbow Method')
-    plt.xlabel('Number of clusters')
-    plt.ylabel('WCSS')
-    plt.show()
-
     # Perform K-Means clustering with chosen number of clusters (5 in this case)
     kmeans = KMeans(n_clusters=n_clusters, init='k-means++', max_iter=300, n_init=10, random_state=0)
+    kmedoids = KMedoids(n_clusters=n_clusters, random_state=0)
     kmeans.fit(X_train)
+    kmedoids.fit(X_train)
     y_kmeans = kmeans.predict(X_test)
+    y_kmedoids = kmedoids.predict(X_test)
 
     # Visualize the clusters in 3D plot
     from mpl_toolkits.mplot3d import Axes3D
 
     fig = plt.figure(figsize=(10, 8))
-    ax = fig.add_subplot(111, projection='3d')
+    ax = fig.add_subplot(121, projection='3d')
+    ax2 = fig.add_subplot(122, projection='3d')
 
-    ax.scatter(X_test[y_kmeans == 0, 2], X_test[y_kmeans == 0, 1], X_test[y_kmeans == 0, 3], s=100, c='red', label='Cluster 1')
-    ax.scatter(X_test[y_kmeans == 1, 2], X_test[y_kmeans == 1, 1], X_test[y_kmeans == 1, 3], s=100, c='blue', label='Cluster 2')
-    ax.scatter(X_test[y_kmeans == 2, 2], X_test[y_kmeans == 2, 1], X_test[y_kmeans == 2, 3], s=100, c='green', label='Cluster 3')
-    ax.scatter(X_test[y_kmeans == 3, 2], X_test[y_kmeans == 3, 1], X_test[y_kmeans == 3, 3], s=100, c='cyan', label='Cluster 4')
-    ax.scatter(X_test[y_kmeans == 4, 2], X_test[y_kmeans == 4, 1], X_test[y_kmeans == 4, 3], s=100, c='magenta', label='Cluster 5')
+    colors = ['red', 'blue', 'green', 'cyan', 'magenta']
+    for i in range(n_clusters):
+        ax2.scatter(X_test[y_kmedoids == i, 2], X_test[y_kmedoids == i, 1], X_test[y_kmedoids == i, 3], s=100, c=colors[i],
+                   label='Cluster {}'.format(i + 1))
+    for i in range(n_clusters):
+        ax.scatter(X_test[y_kmeans == i, 2], X_test[y_kmeans== i, 1], X_test[y_kmeans == i, 3], s=100,
+                    c=colors[i],
+                    label='Cluster {}'.format(i + 1))
 
     ax.set_xlabel('Annual Income (k$)')
     ax.set_ylabel('Age')
     ax.set_zlabel('Spending Score (1-100)')
     ax.set_title('K-Means Clustering')
+
+    ax2.set_xlabel('Annual Income (k$)')
+    ax2.set_ylabel('Age')
+    ax2.set_zlabel('Spending Score (1-100)')
+    ax2.set_title('K-Medoids Clustering')
     ax.legend()
+    ax2.legend()
     plt.show()
     return y_kmeans
-
 
 
 if __name__ == '__main__':
@@ -149,7 +186,8 @@ if __name__ == '__main__':
     plot_3d(df)
     plt.show()
 
-    print("The cluster of each point: ", Kmeans_cluster(df, 5))
-    Kmeans_cluster(df, 4)
-    Kmeans_cluster(df, 3)
-    Kmeans_cluster(df, 2)
+    elbow_best_number_of_clusters(df)
+
+    for i in range(5):
+        print(f"The cluster of each point when there are {i+1} clusters: ", Kmeans_KMedoids_cluster(df, i+1))
+
