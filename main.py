@@ -32,27 +32,26 @@ def detect_outliers(regressor, df):
     actualSpending= df['Spending Score (1-100)']
     residuals=[]
     for i in range(len(predictedSpending)):
-    residuals.append(predictedSpending[i]-actualSpending[i])
+        residuals.append(predictedSpending[i]-actualSpending[i])
 
     residualsSTD= np.std(residuals)
 
     outliers = []
     for i in range(len(residuals)):
-    if (residuals[i]/residualsSTD >=2 or residuals[i]/residualsSTD <=-2 ):
-    outliers.append(f"Customer {i} in row no. {i+2} in the data file with spending rate {actualSpending[i]} is an outlier")
+        if (residuals[i]/residualsSTD >=2 or residuals[i]/residualsSTD <=-2 ):
+         outliers.append(f"Customer {i} in row no. {i+2} in the data file with spending rate {actualSpending[i]} is an outlier")
 
     return outliers
 
 
 def plot_3d(df):
     gender = list(df['Gender'])
-
     color = []
     for g in gender:
-    if g == 'Female':
-    color.append('pink')
-    else:
-    color.append('blue')
+        if g == 'Female':
+            color.append('pink')
+        else:
+            color.append('blue')
     X = df[['Annual Income (k$)', 'Age']].values.reshape(-1,2)
     Y = df['Spending Score (1-100)']
 
