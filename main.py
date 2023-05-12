@@ -5,39 +5,54 @@ from sklearn.linear_model import LinearRegression
 import numpy as np
 import matplotlib.patches as mpatches
 import statsmodels.formula.api as smf
-df= pd.read_csv('Mall_Customers.csv')
-df['Gender']= df['Gender'].astype('category')
-df['Gender']= df['Gender'].cat.codes
-corrMatrix= df.corr()
-ax= plt.figure().add_subplot()
+
+
+def load_data(file_path):
+df = pd.read_csv(file_path)
+df['Gender'] = df['Gender'].astype('category')
+df['Gender'] = df['Gender'].cat.codes
+return df
+
+
+def plot_heatmap(df):
+corrMatrix = df.corr()
 sns.heatmap(corrMatrix, cmap='RdBu', vmin=-0.5, vmax=0.5, annot=True)
+
+
+def fit_linear_regression(df):
 x= df.drop(columns= ['Spending Score (1-100)' , 'CustomerID'])
-print(x)
 y= df['Spending Score (1-100)']
 regressor = LinearRegression()
 regressor.fit(x.values, y.values)
-a = regressor.intercept_
-coefficients = regressor.coef_
+return regressor
+
+
+def detect_outliers(regressor, df):
 predictedSpending= regressor.predict(df[['Gender','Age', 'Annual Income (k$)']].values)
-actualSpending= y
+actualSpending= df['Spending Score (1-100)']
 residuals=[]
 for i in range(len(predictedSpending)):
-    residuals.append(predictedSpending[i]-actualSpending[i])
+residuals.append(predictedSpending[i]-actualSpending[i])
 
 residualsSTD= np.std(residuals)
 
+outliers = []
 for i in range(len(residuals)):
-    if (residuals[i]/residualsSTD >=2 or residuals[i]/residualsSTD <=-2 ):
-        print("Customer " ,i, " in row no. ", i+2, " in the data file with spending rate ", actualSpending[i] ," is an outlier")
+if (residuals[i]/residualsSTD >=2 or residuals[i]/residualsSTD <=-2 ):
+outliers.append(f"Customer {i} in row no. {i+2} in the data file with spending rate {actualSpending[i]} is an outlier")
 
+return outliers
+
+
+def plot_3d(df):
 gender = list(df['Gender'])
 
 color = []
 for g in gender:
-    if g == 'Female':
-        color.append('pink')
-    else:
-        color.append('blue')
+if g == 'Female':
+color.append('pink')
+else:
+color.append('blue')
 X = df[['Annual Income (k$)', 'Age']].values.reshape(-1,2)
 Y = df['Spending Score (1-100)']
 
@@ -66,5 +81,24 @@ pink = mpatches.Patch(color='pink', label='Female')
 blue = mpatches.Patch(color='blue', label='Male')
 ax.legend(handles=[pink, blue])
 outliers = results_formula.outlier_test(method='sidak', alpha=0.05, labels=None, order=False, cutoff= 0.999999)
-print( "\nThe outliers using outliers detector are:\n", outliers)
+return outliers
+
+
+if __name__ == '__main__':
+file_path = 'mall_customers.csv'
+df = load_data(file_path)
+
+# Plot heatmap of correlation matrix
+plot_heatmap(df)
+plt.show()
+
+# Fit linear regression to predict spending score
+regressor = fit_linear_regression(df)
+
+# Detect outliers
+outliers = detect_outliers(regressor, df)
+print('Outliers:', outliers)
+
+# Plot 3D visualization of spending score vs income and age
+plot_3d(df)
 plt.show()
