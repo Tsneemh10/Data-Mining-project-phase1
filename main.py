@@ -85,15 +85,17 @@ def plot_3d(df):
 
 def Kmeans_cluster(numerical_dataframe, n_clusters):
     from sklearn.cluster import KMeans
+    from sklearn.model_selection import train_test_split
 
     # Extract relevant features for clustering
     X = numerical_dataframe[['Gender', 'Age', 'Annual Income (k$)', 'Spending Score (1-100)']].values
+    X_train, X_test = train_test_split(X, test_size=0.2, random_state=42)
 
     # Determine optimal number of clusters using the elbow method
     wcss = []
     for i in range(1, 11):
         kmeans = KMeans(n_clusters=i, init='k-means++', max_iter=300, n_init=10, random_state=0)
-        kmeans.fit(X)
+        kmeans.fit(X_train)
         wcss.append(kmeans.inertia_)
     plt.plot(range(1, 11), wcss)
     plt.title('Elbow Method')
@@ -103,7 +105,8 @@ def Kmeans_cluster(numerical_dataframe, n_clusters):
 
     # Perform K-Means clustering with chosen number of clusters (5 in this case)
     kmeans = KMeans(n_clusters=n_clusters, init='k-means++', max_iter=300, n_init=10, random_state=0)
-    y_kmeans = kmeans.fit_predict(X)
+    kmeans.fit(X_train)
+    y_kmeans = kmeans.predict(X_test)
 
     # Visualize the clusters in 3D plot
     from mpl_toolkits.mplot3d import Axes3D
@@ -111,11 +114,11 @@ def Kmeans_cluster(numerical_dataframe, n_clusters):
     fig = plt.figure(figsize=(10, 8))
     ax = fig.add_subplot(111, projection='3d')
 
-    ax.scatter(X[y_kmeans == 0, 2], X[y_kmeans == 0, 1], X[y_kmeans == 0, 3], s=100, c='red', label='Cluster 1')
-    ax.scatter(X[y_kmeans == 1, 2], X[y_kmeans == 1, 1], X[y_kmeans == 1, 3], s=100, c='blue', label='Cluster 2')
-    ax.scatter(X[y_kmeans == 2, 2], X[y_kmeans == 2, 1], X[y_kmeans == 2, 3], s=100, c='green', label='Cluster 3')
-    ax.scatter(X[y_kmeans == 3, 2], X[y_kmeans == 3, 1], X[y_kmeans == 3, 3], s=100, c='cyan', label='Cluster 4')
-    ax.scatter(X[y_kmeans == 4, 2], X[y_kmeans == 4, 1], X[y_kmeans == 4, 3], s=100, c='magenta', label='Cluster 5')
+    ax.scatter(X_test[y_kmeans == 0, 2], X_test[y_kmeans == 0, 1], X_test[y_kmeans == 0, 3], s=100, c='red', label='Cluster 1')
+    ax.scatter(X_test[y_kmeans == 1, 2], X_test[y_kmeans == 1, 1], X_test[y_kmeans == 1, 3], s=100, c='blue', label='Cluster 2')
+    ax.scatter(X_test[y_kmeans == 2, 2], X_test[y_kmeans == 2, 1], X_test[y_kmeans == 2, 3], s=100, c='green', label='Cluster 3')
+    ax.scatter(X_test[y_kmeans == 3, 2], X_test[y_kmeans == 3, 1], X_test[y_kmeans == 3, 3], s=100, c='cyan', label='Cluster 4')
+    ax.scatter(X_test[y_kmeans == 4, 2], X_test[y_kmeans == 4, 1], X_test[y_kmeans == 4, 3], s=100, c='magenta', label='Cluster 5')
 
     ax.set_xlabel('Annual Income (k$)')
     ax.set_ylabel('Age')
@@ -146,7 +149,7 @@ if __name__ == '__main__':
     plot_3d(df)
     plt.show()
 
-    print(len(Kmeans_cluster(df, 5)))
+    print("The cluster of each point: ", Kmeans_cluster(df, 5))
     Kmeans_cluster(df, 4)
     Kmeans_cluster(df, 3)
     Kmeans_cluster(df, 2)
